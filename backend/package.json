@@ -8,7 +8,9 @@
     "dev": "nodemon src/server.js",
     "worker": "node src/workers/judgeWorker.js",
     "seed": "node src/seeders/seed.js",
-    "setup-test-data": "node scripts/setup-test-data.js"
+    "setup-test-data": "node scripts/setup-test-data.js",
+    "auto-setup-test-data": "node scripts/auto-setup-test-data.js",
+    "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

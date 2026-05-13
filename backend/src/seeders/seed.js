@@ -1,12 +1,16 @@
 require('dotenv').config();
 
 const { connectDatabase } = require('../config/database');
-const { User, Problem, Tag, sequelize } = require('../models');
+const { User, Problem, Tag, Submission, ProblemTags, sequelize } = require('../models');
 
 const seedData = async () => {
   console.log('Starting seed...');
   
-  await connectDatabase();
+  await connectDatabase(null);
+  
+  console.log('Dropping all tables and recreating...');
+  await sequelize.sync({ force: true });
+  console.log('Tables recreated.');
   
   try {
     const admin = await User.create({

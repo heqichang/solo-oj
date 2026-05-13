@@ -1,10 +1,38 @@
 const Docker = require('dockerode');
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const { LANGUAGES, PATHS, JUDGE_STATUS } = require('../config/constants');
 
-const docker = new Docker();
+const isWindows = os.platform() === 'win32';
+
+const getDockerOptions = () => {
+  if (process.env.DOCKER_HOST) {
+    return {};
+  }
+  
+  if (isWindows) {
+    return { socketPath: '//./pipe/docker_engine' };
+  }
+  
+  return { socketPath: '/var/run/docker.sock' };
+};
+
+const convertToDockerPath = (windowsPath) => {
+  if (!isWindows) return windowsPath;
+  
+  try {
+    let normalized = path.normalize(windowsPath);
+    normalized = normalized.replace(/^([A-Z]):\\/, (match, drive) => `/${drive.toLowerCase()}/`);
+    normalized = normalized.replace(/\\/g, '/');
+    return normalized;
+  } catch (e) {
+    return windowsPath;
+  }
+};
+
+const docker = new Docker(getDockerOptions());
 
 const createTempDir = async (prefix) => {
   const dir = path.join(require('os').tmpdir(), `${prefix}-${uuidv4()}`);
@@ -70,6 +98,8 @@ const compileCode = async (language, code, tempDir, timeout) => {
   try {
     await pullImageIfNeeded(langConfig.dockerImage);
     
+    const dockerTempDir = convertToDockerPath(tempDir);
+    
     const container = await docker.createContainer({
       Image: langConfig.dockerImage,
       WorkingDir: '/workspace',
@@ -79,7 +109,7 @@ const compileCode = async (language, code, tempDir, timeout) => {
       AttachStderr: true,
       Cmd: [langConfig.compileCommand, ...langConfig.compileArgs],
       HostConfig: {
-        Binds: [`${tempDir}:/workspace:rw`],
+        Binds: [`${dockerTempDir}:/workspace:rw`],
         MemoryLimit: 512 * 1024 * 1024,
         NetworkMode: 'none',
         ReadonlyRootfs: false,
@@ -112,6 +142,7 @@ const compileCode = async (language, code, tempDir, timeout) => {
 
 const runTest = async (language, tempDir, input, timeLimit, memoryLimit) => {
   const langConfig = LANGUAGES[language];
+  const dockerTempDir = convertToDockerPath(tempDir);
   
   try {
     const container = await docker.createContainer({
@@ -127,7 +158,7 @@ const runTest = async (language, tempDir, input, timeLimit, memoryLimit) => {
         ? [langConfig.runCommand, ...langConfig.runArgs]
         : [langConfig.runCommand],
       HostConfig: {
-        Binds: [`${tempDir}:/workspace:ro`],
+        Binds: [`${dockerTempDir}:/workspace:ro`],
         MemoryLimit: memoryLimit * 1024 * 1024,
         MemorySwap: memoryLimit * 1024 * 1024,
         CpuQuota: Math.round(50000 * (langConfig.cpuLimit || 0.5)),
@@ -312,9 +343,8 @@ const judge = async ({ language, code, problemId, timeLimitMs, memoryLimitMB }) 
     
     if (testCases.length === 0) {
       return {
-        status: JUDGE_STATUS.ACCEPTED,
-        runtimeMs: 0,
-        memoryMB: 0,
+        status: JUDGE_STATUS.SYSTEM_ERROR,
+        error: 'No test cases found for this problem. Please configure test data.',
         testResults: [],
         passedTestCases: 0,
         totalTestCases: 0,

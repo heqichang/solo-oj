@@ -7,6 +7,22 @@ const Submission = sequelize.define('Submission', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+  problemId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'problems',
+      key: 'id',
+    },
+  },
   code: {
     type: DataTypes.TEXT,
     allowNull: false,

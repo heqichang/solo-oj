@@ -14,12 +14,14 @@ const sequelize = new Sequelize(DB.database, DB.user, DB.password, {
   },
 });
 
-const connectDatabase = async () => {
+const connectDatabase = async (syncOptions = { alter: NODE_ENV === 'development' }) => {
   try {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
-    await sequelize.sync({ alter: NODE_ENV === 'development' });
-    console.log('Database models synchronized.');
+    if (syncOptions !== null) {
+      await sequelize.sync(syncOptions);
+      console.log('Database models synchronized.');
+    }
   } catch (error) {
     console.error('Unable to connect to the database:', error);
     process.exit(1);
