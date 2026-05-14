@@ -50,9 +50,9 @@ module.exports = {
       name: 'C++',
       extension: '.cpp',
       compileCommand: 'g++',
-      compileArgs: ['-O2', '-o', 'main', 'main.cpp'],
+      compileArgs: ['-O2', '-std=c++17', '-o', 'main', 'main.cpp'],
       runCommand: './main',
-      dockerImage: 'gcc:13.2.0-alpine3.18',
+      dockerImage: 'gcc:13',
     },
     c: {
       name: 'C',
@@ -60,7 +60,7 @@ module.exports = {
       compileCommand: 'gcc',
       compileArgs: ['-O2', '-o', 'main', 'main.c'],
       runCommand: './main',
-      dockerImage: 'gcc:13.2.0-alpine3.18',
+      dockerImage: 'gcc:13',
     },
     java: {
       name: 'Java',
@@ -69,7 +69,7 @@ module.exports = {
       compileArgs: ['Main.java'],
       runCommand: 'java',
       runArgs: ['Main'],
-      dockerImage: 'eclipse-temurin:17-jre-alpine',
+      dockerImage: 'eclipse-temurin:17-jdk',
     },
     python: {
       name: 'Python',
@@ -85,7 +85,7 @@ module.exports = {
       compileCommand: null,
       runCommand: 'node',
       runArgs: ['main.js'],
-      dockerImage: 'node:20-alpine',
+      dockerImage: 'node:20',
     },
   },
 };
