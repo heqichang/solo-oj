@@ -44,6 +44,33 @@ module.exports = {
     COMPILATION_ERROR: 'COMPILATION_ERROR',
     SYSTEM_ERROR: 'SYSTEM_ERROR',
   },
+
+  CONTEST_RULES: {
+    ACM: 'ACM',
+    OI: 'OI',
+    IOI: 'IOI',
+  },
+
+  CONTEST_STATUS: {
+    UPCOMING: 'UPCOMING',
+    RUNNING: 'RUNNING',
+    ENDED: 'ENDED',
+  },
+
+  PROBLEM_STATUS: {
+    DRAFT: 'DRAFT',
+    PENDING_REVIEW: 'PENDING_REVIEW',
+    PUBLISHED: 'PUBLISHED',
+    REJECTED: 'REJECTED',
+  },
+
+  DISCUSSION_SORT: {
+    LATEST: 'LATEST',
+    HOTTEST: 'HOTTEST',
+  },
+
+  ACM_PENALTY: 20,
+
   
   LANGUAGES: {
     cpp: {

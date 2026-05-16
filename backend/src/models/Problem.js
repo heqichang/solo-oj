@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { PROBLEM_STATUS } = require('../config/constants');
 
 const Problem = sequelize.define('Problem', {
   id: {
@@ -63,13 +64,62 @@ const Problem = sequelize.define('Problem', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  averageAttempts: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
   isPublic: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  status: {
+    type: DataTypes.ENUM(
+      PROBLEM_STATUS.DRAFT,
+      PROBLEM_STATUS.PENDING_REVIEW,
+      PROBLEM_STATUS.PUBLISHED,
+      PROBLEM_STATUS.REJECTED
+    ),
+    allowNull: false,
+    defaultValue: PROBLEM_STATUS.DRAFT,
+  },
+  createdBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+  reviewedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+  reviewComment: {
+    type: DataTypes.TEXT,
+    defaultValue: '',
+  },
+  ioFormat: {
+    type: DataTypes.JSONB,
+    defaultValue: null,
+  },
 }, {
   timestamps: true,
   tableName: 'problems',
+  indexes: [
+    {
+      fields: ['status'],
+    },
+    {
+      fields: ['createdBy'],
+    },
+    {
+      fields: ['difficulty'],
+    },
+  ],
 });
 
 module.exports = Problem;

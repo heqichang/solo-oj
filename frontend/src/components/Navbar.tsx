@@ -19,19 +19,53 @@ const Navbar: React.FC = () => {
             <Link to="/" className="flex items-center">
               <span className="text-xl font-bold text-blue-600">SoloOJ</span>
             </Link>
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
+            <div className="hidden md:ml-10 md:flex md:space-x-6">
               <Link
                 to="/problems"
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
               >
                 题目
               </Link>
+              <Link
+                to="/contests"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              >
+                竞赛
+              </Link>
+              <Link
+                to="/rankings"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              >
+                排名
+              </Link>
+              <Link
+                to="/discussions"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              >
+                讨论
+              </Link>
               {user && (
+                <>
+                  <Link
+                    to="/submissions"
+                    className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                  >
+                    提交
+                  </Link>
+                  <Link
+                    to="/code/favorites"
+                    className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                  >
+                    代码
+                  </Link>
+                </>
+              )}
+              {user?.isAdmin && (
                 <Link
-                  to="/submissions"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                  to="/admin/problems"
+                  className="text-purple-600 hover:text-purple-800 px-3 py-2 text-sm font-medium"
                 >
-                  提交记录
+                  管理
                 </Link>
               )}
             </div>
@@ -46,6 +80,12 @@ const Navbar: React.FC = () => {
                     className="text-gray-700 hover:text-blue-600 text-sm font-medium"
                   >
                     {user.nickname || user.username}
+                  </Link>
+                  <Link
+                    to="/stats"
+                    className="text-gray-500 hover:text-blue-600 text-xs"
+                  >
+                    📊 统计
                   </Link>
                   {user.isAdmin && (
                     <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded">

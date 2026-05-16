@@ -12,6 +12,20 @@ import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import ProfilePage from './pages/ProfilePage';
 
+import ContestsPage from './pages/contests/ContestsPage';
+import ContestDetailPage from './pages/contests/ContestDetailPage';
+import ContestLeaderboardPage from './pages/contests/ContestLeaderboardPage';
+
+import RankingsPage from './pages/rankings/RankingsPage';
+import UserStatsPage from './pages/rankings/UserStatsPage';
+
+import AdminProblemsPage from './pages/admin/AdminProblemsPage';
+
+import DiscussionsPage from './pages/discussions/DiscussionsPage';
+
+import CodeFavoritesPage from './pages/code/CodeFavoritesPage';
+import CodeNotesPage from './pages/code/CodeNotesPage';
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -25,6 +39,7 @@ const App: React.FC = () => {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/problems" element={<ProblemsPage />} />
               <Route path="/problems/:slug" element={<ProblemDetailPage />} />
+
               <Route
                 path="/submissions"
                 element={
@@ -46,6 +61,48 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="/contests" element={<ContestsPage />} />
+              <Route path="/contests/:slug" element={<ContestDetailPage />} />
+              <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboardPage />} />
+
+              <Route path="/rankings" element={<RankingsPage />} />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <UserStatsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/problems"
+                element={
+                  <ProtectedRoute>
+                    <AdminProblemsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="/discussions" element={<DiscussionsPage />} />
+
+              <Route
+                path="/code/favorites"
+                element={
+                  <ProtectedRoute>
+                    <CodeFavoritesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/code/notes"
+                element={
+                  <ProtectedRoute>
+                    <CodeNotesPage />
                   </ProtectedRoute>
                 }
               />

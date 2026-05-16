@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('user');
   };
 
-  const updateProfile = async (data: Partial<User>) => {
+  const updateProfile = async (data: Partial<{ nickname: string; avatar: string | null; bio: string; password: string }>) => {
     try {
       const response = await authApi.updateProfile(data);
       

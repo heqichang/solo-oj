@@ -3,10 +3,27 @@ require('dotenv').config();
 const { judgeQueue } = require('../config/redis');
 const { judge } = require('../services/judgeService');
 const { connectDatabase } = require('../config/database');
-const { Submission, Problem, User } = require('../models');
+const { processContestSubmission } = require('../services/contestService');
+const { recordSubmissionInStats } = require('../services/rankingService');
+const {
+  Submission,
+  Problem,
+  User,
+  Contest,
+  ContestProblem,
+} = require('../models');
 
 const processJudgeJob = async (job) => {
-  const { submissionId, problemId, language, code, timeLimitMs, memoryLimitMB } = job.data;
+  const {
+    submissionId,
+    problemId,
+    language,
+    code,
+    timeLimitMs,
+    memoryLimitMB,
+    contestId,
+    contestProblemId,
+  } = job.data;
   
   console.log(`Processing submission ${submissionId}...`);
   
@@ -49,6 +66,8 @@ const processJudgeJob = async (job) => {
     
     await submission.update(updateData);
     
+    await recordSubmissionInStats(submission.userId, submission, false);
+    
     if (result.status === 'ACCEPTED') {
       const problem = await Problem.findByPk(problemId);
       if (problem) {
@@ -69,8 +88,35 @@ const processJudgeJob = async (job) => {
           const user = await User.findByPk(userId);
           if (user) {
             await user.increment('solvedCount');
+            await recordSubmissionInStats(userId, submission, true);
           }
         }
+      }
+    }
+    
+    if (contestId && contestProblemId) {
+      const contest = await Contest.findByPk(contestId);
+      const contestProblem = await ContestProblem.findByPk(contestProblemId);
+      
+      if (contest && contestProblem) {
+        const isAccepted = result.status === 'ACCEPTED';
+        let score = 0;
+        
+        if (contest.ruleType === 'ACM') {
+          score = isAccepted ? 1 : 0;
+        } else {
+          if (contestProblem.score > 0 && result.totalTestCases > 0) {
+            score = Math.round((result.passedTestCases / result.totalTestCases) * contestProblem.score);
+          }
+        }
+        
+        await processContestSubmission(
+          contest,
+          contestProblem,
+          submission,
+          isAccepted,
+          score
+        );
       }
     }
     

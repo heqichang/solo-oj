@@ -3,6 +3,8 @@ const { Problem, Tag, Submission, User } = require('../models');
 const { generateUniqueSlug } = require('../utils/slug');
 const { success, error, paginate } = require('../utils/response');
 
+const { PROBLEM_STATUS } = require('../config/constants');
+
 const listProblems = async (req, res) => {
   try {
     const { page = 1, limit = 10, difficulty, tag, search } = req.query;
@@ -10,7 +12,7 @@ const listProblems = async (req, res) => {
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     
-    const where = { isPublic: true };
+    const where = { isPublic: true, status: PROBLEM_STATUS.PUBLISHED };
     
     if (difficulty) {
       where.difficulty = difficulty.toUpperCase();
@@ -61,7 +63,7 @@ const getProblem = async (req, res) => {
     const { slug } = req.params;
     
     const problem = await Problem.findOne({
-      where: { slug, isPublic: true },
+      where: { slug, isPublic: true, status: PROBLEM_STATUS.PUBLISHED },
       include: [{ model: Tag, as: 'tags', through: { attributes: [] } }],
     });
     
