@@ -8,11 +8,17 @@ const { PROBLEM_STATUS } = require('../config/constants');
 const listProblems = async (req, res) => {
   try {
     const { page = 1, limit = 10, difficulty, tag, search } = req.query;
+    const user = req.user;
     
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     
-    const where = { isPublic: true, status: PROBLEM_STATUS.PUBLISHED };
+    const where = {};
+    
+    if (!user || !user.isAdmin) {
+      where.isPublic = true;
+      where.status = PROBLEM_STATUS.PUBLISHED;
+    }
     
     if (difficulty) {
       where.difficulty = difficulty.toUpperCase();
@@ -36,7 +42,7 @@ const listProblems = async (req, res) => {
       include,
       attributes: [
         'id', 'slug', 'title', 'difficulty', 'timeLimitMs', 'memoryLimitMB',
-        'submissionsCount', 'acceptedCount', 'createdAt'
+        'submissionsCount', 'acceptedCount', 'createdAt', 'status'
       ],
       order: [['createdAt', 'DESC']],
       offset: (pageNum - 1) * limitNum,
@@ -61,9 +67,16 @@ const listProblems = async (req, res) => {
 const getProblem = async (req, res) => {
   try {
     const { slug } = req.params;
+    const user = req.user;
+    
+    const where = { slug };
+    if (!user || !user.isAdmin) {
+      where.isPublic = true;
+      where.status = PROBLEM_STATUS.PUBLISHED;
+    }
     
     const problem = await Problem.findOne({
-      where: { slug, isPublic: true, status: PROBLEM_STATUS.PUBLISHED },
+      where,
       include: [{ model: Tag, as: 'tags', through: { attributes: [] } }],
     });
     

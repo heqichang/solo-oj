@@ -57,6 +57,19 @@ const ContestsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [status, setStatus] = useState<'UPCOMING' | 'RUNNING' | 'ENDED' | ''>('');
   const [search, setSearch] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    slug: '',
+    description: '',
+    ruleType: 'ACM' as 'ACM' | 'OI' | 'IOI',
+    startTime: '',
+    endTime: '',
+    freezeTime: '',
+    isVisible: true,
+  });
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const loadContests = async () => {
     setLoading(true);
@@ -76,6 +89,53 @@ const ContestsPage: React.FC = () => {
     setLoading(false);
   };
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim() || !formData.slug.trim() || !formData.startTime || !formData.endTime) {
+      setMessage({ type: 'error', text: '请填写必填字段' });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const data: any = {
+        title: formData.title,
+        slug: formData.slug,
+        description: formData.description,
+        ruleType: formData.ruleType,
+        startTime: new Date(formData.startTime).toISOString(),
+        endTime: new Date(formData.endTime).toISOString(),
+        isVisible: formData.isVisible,
+      };
+      if (formData.freezeTime) {
+        data.freezeTime = new Date(formData.freezeTime).toISOString();
+      }
+
+      const response = await contestApi.create(data);
+      if (response.success) {
+        setShowCreateModal(false);
+        setFormData({
+          title: '',
+          slug: '',
+          description: '',
+          ruleType: 'ACM',
+          startTime: '',
+          endTime: '',
+          freezeTime: '',
+          isVisible: true,
+        });
+        setMessage({ type: 'success', text: '竞赛创建成功！' });
+        loadContests();
+      } else {
+        setMessage({ type: 'error', text: response.error || '创建失败' });
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || '创建失败' });
+    }
+    setSubmitting(false);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
   useEffect(() => {
     loadContests();
   }, [page, status, search]);
@@ -86,11 +146,26 @@ const ContestsPage: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900">竞赛列表</h1>
           {user?.isAdmin && (
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
               创建竞赛
             </button>
           )}
         </div>
+
+        {message && (
+          <div
+            className={`mb-4 p-3 rounded-lg ${
+              message.type === 'success'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex flex-wrap gap-4 items-center">
@@ -244,6 +319,142 @@ const ContestsPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-4">创建竞赛</h3>
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      竞赛名称 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="请输入竞赛名称"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Slug <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="example: winter-contest-2024"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    描述
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="竞赛描述"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      规则类型 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.ruleType}
+                      onChange={(e) => setFormData({ ...formData, ruleType: e.target.value as 'ACM' | 'OI' | 'IOI' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="ACM">ACM（通过数 + 罚时）</option>
+                      <option value="OI">OI（总分制）</option>
+                      <option value="IOI">IOI（子任务得分）</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      是否可见
+                    </label>
+                    <select
+                      value={formData.isVisible ? 'true' : 'false'}
+                      onChange={(e) => setFormData({ ...formData, isVisible: e.target.value === 'true' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="true">公开</option>
+                      <option value="false">隐藏</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      开始时间 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      结束时间 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    封榜时间（可选）
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.freezeTime}
+                    onChange={(e) => setFormData({ ...formData, freezeTime: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">封榜后排行榜将隐藏部分数据</p>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {submitting ? '创建中...' : '创建'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

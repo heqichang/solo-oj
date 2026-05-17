@@ -22,6 +22,7 @@ import UserStatsPage from './pages/rankings/UserStatsPage';
 import AdminProblemsPage from './pages/admin/AdminProblemsPage';
 
 import DiscussionsPage from './pages/discussions/DiscussionsPage';
+import DiscussionDetailPage from './pages/discussions/DiscussionDetailPage';
 
 import CodeFavoritesPage from './pages/code/CodeFavoritesPage';
 import CodeNotesPage from './pages/code/CodeNotesPage';
@@ -89,6 +90,7 @@ const App: React.FC = () => {
               />
 
               <Route path="/discussions" element={<DiscussionsPage />} />
+              <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
 
               <Route
                 path="/code/favorites"

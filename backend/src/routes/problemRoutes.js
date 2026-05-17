@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate, requireAdmin } = require('../middlewares/auth');
+const { authenticate, authenticateOptional, requireAdmin } = require('../middlewares/auth');
 const {
   listProblems,
   getProblem,
@@ -9,9 +9,9 @@ const {
 
 const router = express.Router();
 
-router.get('/', listProblems);
+router.get('/', authenticateOptional, listProblems);
 router.get('/tags', listTags);
-router.get('/:slug', getProblem);
+router.get('/:slug', authenticateOptional, getProblem);
 router.post('/', authenticate, requireAdmin, createProblem);
 
 module.exports = router;

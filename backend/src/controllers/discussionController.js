@@ -306,10 +306,11 @@ const updateReply = async (req, res) => {
 
 const deleteReply = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id, replyId } = req.params;
+    const replyIdToUse = replyId || id;
     const user = req.user;
 
-    const reply = await DiscussionReply.findOne({ where: { id, isDeleted: false } });
+    const reply = await DiscussionReply.findOne({ where: { id: replyIdToUse, isDeleted: false } });
     if (!reply) {
       return error(res, 'Reply not found', 404);
     }
@@ -329,6 +330,130 @@ const deleteReply = async (req, res) => {
   } catch (err) {
     console.error('Delete reply error:', err);
     return error(res, 'Failed to delete reply', 500);
+  }
+};
+
+const listReplies = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const user = req.user;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    const post = await DiscussionPost.findOne({ where: { id: postId, isDeleted: false } });
+    if (!post) {
+      return error(res, 'Post not found', 404);
+    }
+
+    const where = { postId, isDeleted: false };
+
+    const { count, rows } = await DiscussionReply.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'nickname', 'avatar'],
+        },
+      ],
+      order: [['createdAt', 'ASC']],
+      offset: (pageNum - 1) * limitNum,
+      limit: limitNum,
+    });
+
+    const replyIds = rows.map((r) => r.id);
+    const likedMap = {};
+    if (user && replyIds.length > 0) {
+      const likes = await Like.findAll({
+        where: { userId: user.id, targetType: 'REPLY', targetId: replyIds },
+      });
+      likes.forEach((like) => {
+        likedMap[like.targetId] = true;
+      });
+    }
+
+    const repliesWithLiked = rows.map((reply) => ({
+      ...reply.toJSON(),
+      isLiked: !!likedMap[reply.id],
+    }));
+
+    return paginate(res, repliesWithLiked, count, pageNum, limitNum);
+  } catch (err) {
+    console.error('List replies error:', err);
+    return error(res, 'Failed to fetch replies', 500);
+  }
+};
+
+const togglePostLike = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    const post = await DiscussionPost.findOne({ where: { id, isDeleted: false } });
+    if (!post) {
+      return error(res, 'Post not found', 404);
+    }
+
+    const existingLike = await Like.findOne({
+      where: { userId: user.id, targetType: 'POST', targetId: id },
+    });
+
+    let liked = false;
+
+    if (existingLike) {
+      await existingLike.destroy();
+      await post.decrement('likeCount');
+    } else {
+      await Like.create({
+        userId: user.id,
+        targetType: 'POST',
+        targetId: id,
+      });
+      await post.increment('likeCount');
+      liked = true;
+    }
+
+    return success(res, { liked, likeCount: post.likeCount + (liked ? 1 : -1) });
+  } catch (err) {
+    console.error('Toggle post like error:', err);
+    return error(res, 'Failed to toggle like', 500);
+  }
+};
+
+const toggleReplyLike = async (req, res) => {
+  try {
+    const { replyId } = req.params;
+    const user = req.user;
+
+    const reply = await DiscussionReply.findOne({ where: { id: replyId, isDeleted: false } });
+    if (!reply) {
+      return error(res, 'Reply not found', 404);
+    }
+
+    const existingLike = await Like.findOne({
+      where: { userId: user.id, targetType: 'REPLY', targetId: replyId },
+    });
+
+    let liked = false;
+
+    if (existingLike) {
+      await existingLike.destroy();
+      await reply.decrement('likeCount');
+    } else {
+      await Like.create({
+        userId: user.id,
+        targetType: 'REPLY',
+        targetId: replyId,
+      });
+      await reply.increment('likeCount');
+      liked = true;
+    }
+
+    return success(res, { liked, likeCount: reply.likeCount + (liked ? 1 : -1) });
+  } catch (err) {
+    console.error('Toggle reply like error:', err);
+    return error(res, 'Failed to toggle like', 500);
   }
 };
 
@@ -416,6 +541,9 @@ module.exports = {
   createReply,
   updateReply,
   deleteReply,
+  listReplies,
+  togglePostLike,
+  toggleReplyLike,
   toggleLike,
   pinPost,
 };

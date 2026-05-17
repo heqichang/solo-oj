@@ -36,4 +36,34 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, requireAdmin };
+const authenticateOptional = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+    
+    const token = authHeader.substring(7);
+    
+    const decoded = jwt.verify(token, JWT.secret);
+    
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['password'] },
+    });
+    
+    if (!user) {
+      req.user = null;
+      return next();
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { authenticate, authenticateOptional, requireAdmin };

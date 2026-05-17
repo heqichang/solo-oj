@@ -314,8 +314,8 @@ export const adminProblemApi = {
   },
 
   review: async (id: string, data: {
-    status: 'PUBLISHED' | 'REJECTED';
-    reviewComment?: string;
+    action: 'approve' | 'reject';
+    comment?: string;
   }) => {
     const res = await api.post<ApiResponse<null>>(`/admin/problems/${id}/review`, data);
     return res.data;

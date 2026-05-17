@@ -8,9 +8,12 @@ const {
   createPost,
   updatePost,
   deletePost,
+  listReplies,
   createReply,
   updateReply,
   deleteReply,
+  togglePostLike,
+  toggleReplyLike,
   toggleLike,
   pinPost,
 } = require('../controllers/discussionController');
@@ -34,6 +37,9 @@ router.post(
 router.put('/:id', authenticate, updatePost);
 router.delete('/:id', authenticate, deletePost);
 
+router.post('/:id/like', authenticate, togglePostLike);
+
+router.get('/:postId/replies', authenticate, listReplies);
 router.post(
   '/:postId/replies',
   authenticate,
@@ -43,9 +49,11 @@ router.post(
   ],
   createReply
 );
+router.post('/:postId/replies/:replyId/like', authenticate, toggleReplyLike);
 
 router.put('/replies/:id', authenticate, updateReply);
 router.delete('/replies/:id', authenticate, deleteReply);
+router.delete('/:postId/replies/:replyId', authenticate, deleteReply);
 
 router.post('/likes/:targetType/:targetId', authenticate, toggleLike);
 
