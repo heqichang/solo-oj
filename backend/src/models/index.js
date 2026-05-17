@@ -13,6 +13,17 @@ const Like = require('./Like');
 const CodeFavorite = require('./CodeFavorite');
 const CodeNote = require('./CodeNote');
 const SubmissionStats = require('./SubmissionStats');
+const PlagiarismReport = require('./PlagiarismReport');
+const PlagiarismMatch = require('./PlagiarismMatch');
+const CheatingRecord = require('./CheatingRecord');
+const JudgeNode = require('./JudgeNode');
+const ProblemSet = require('./ProblemSet');
+const ProblemSetProblem = require('./ProblemSetProblem');
+const ProblemSetProgress = require('./ProblemSetProgress');
+const ProblemSetRating = require('./ProblemSetRating');
+const ProblemHint = require('./ProblemHint');
+const UserWeakTag = require('./UserWeakTag');
+const SubmissionIpRecord = require('./SubmissionIpRecord');
 
 const ProblemTags = sequelize.define('ProblemTags', {
   problemId: {
@@ -104,6 +115,69 @@ Problem.belongsTo(User, { as: 'reviewer', foreignKey: 'reviewedBy' });
 User.hasMany(Problem, { as: 'createdProblems', foreignKey: 'createdBy' });
 User.hasMany(Problem, { as: 'reviewedProblems', foreignKey: 'reviewedBy' });
 
+PlagiarismReport.belongsTo(Problem, { as: 'problem', foreignKey: 'problemId' });
+PlagiarismReport.belongsTo(Contest, { as: 'contest', foreignKey: 'contestId' });
+PlagiarismReport.belongsTo(User, { as: 'generator', foreignKey: 'generatedBy' });
+PlagiarismReport.hasMany(PlagiarismMatch, { as: 'matches', foreignKey: 'reportId' });
+Problem.hasMany(PlagiarismReport, { as: 'plagiarismReports', foreignKey: 'problemId' });
+Contest.hasMany(PlagiarismReport, { as: 'plagiarismReports', foreignKey: 'contestId' });
+User.hasMany(PlagiarismReport, { as: 'generatedPlagiarismReports', foreignKey: 'generatedBy' });
+
+PlagiarismMatch.belongsTo(PlagiarismReport, { as: 'report', foreignKey: 'reportId' });
+PlagiarismMatch.belongsTo(Submission, { as: 'submission1', foreignKey: 'submissionId1' });
+PlagiarismMatch.belongsTo(Submission, { as: 'submission2', foreignKey: 'submissionId2' });
+PlagiarismMatch.belongsTo(User, { as: 'user1', foreignKey: 'userId1' });
+PlagiarismMatch.belongsTo(User, { as: 'user2', foreignKey: 'userId2' });
+PlagiarismMatch.belongsTo(User, { as: 'reviewer', foreignKey: 'reviewedBy' });
+Submission.hasMany(PlagiarismMatch, { as: 'plagiarismMatches1', foreignKey: 'submissionId1' });
+Submission.hasMany(PlagiarismMatch, { as: 'plagiarismMatches2', foreignKey: 'submissionId2' });
+
+CheatingRecord.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+CheatingRecord.belongsTo(Contest, { as: 'contest', foreignKey: 'contestId' });
+CheatingRecord.belongsTo(Submission, { as: 'submission', foreignKey: 'submissionId' });
+CheatingRecord.belongsTo(PlagiarismMatch, { as: 'plagiarismMatch', foreignKey: 'plagiarismMatchId' });
+CheatingRecord.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+CheatingRecord.belongsTo(User, { as: 'appealReviewer', foreignKey: 'appealReviewedBy' });
+User.hasMany(CheatingRecord, { as: 'cheatingRecords', foreignKey: 'userId' });
+User.hasMany(CheatingRecord, { as: 'createdCheatingRecords', foreignKey: 'createdBy' });
+
+Submission.belongsTo(JudgeNode, { as: 'judgeNode', foreignKey: 'judgeNodeId' });
+JudgeNode.hasMany(Submission, { as: 'submissions', foreignKey: 'judgeNodeId' });
+
+ProblemSet.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+User.hasMany(ProblemSet, { as: 'createdProblemSets', foreignKey: 'createdBy' });
+
+ProblemSetProblem.belongsTo(ProblemSet, { as: 'problemSet', foreignKey: 'problemSetId' });
+ProblemSetProblem.belongsTo(Problem, { as: 'problem', foreignKey: 'problemId' });
+ProblemSet.hasMany(ProblemSetProblem, { as: 'problemSetProblems', foreignKey: 'problemSetId' });
+Problem.hasMany(ProblemSetProblem, { as: 'problemSetProblems', foreignKey: 'problemId' });
+
+ProblemSetProgress.belongsTo(ProblemSet, { as: 'problemSet', foreignKey: 'problemSetId' });
+ProblemSetProgress.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+ProblemSetProgress.belongsTo(Problem, { as: 'lastProblem', foreignKey: 'lastProblemId' });
+ProblemSet.hasMany(ProblemSetProgress, { as: 'progresses', foreignKey: 'problemSetId' });
+User.hasMany(ProblemSetProgress, { as: 'problemSetProgresses', foreignKey: 'userId' });
+
+ProblemSetRating.belongsTo(ProblemSet, { as: 'problemSet', foreignKey: 'problemSetId' });
+ProblemSetRating.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+ProblemSet.hasMany(ProblemSetRating, { as: 'ratings', foreignKey: 'problemSetId' });
+User.hasMany(ProblemSetRating, { as: 'problemSetRatings', foreignKey: 'userId' });
+
+ProblemHint.belongsTo(Problem, { as: 'problem', foreignKey: 'problemId' });
+ProblemHint.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+Problem.hasMany(ProblemHint, { as: 'problemHints', foreignKey: 'problemId' });
+User.hasMany(ProblemHint, { as: 'createdHints', foreignKey: 'createdBy' });
+
+UserWeakTag.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+UserWeakTag.belongsTo(Tag, { as: 'tag', foreignKey: 'tagId' });
+User.hasMany(UserWeakTag, { as: 'weakTags', foreignKey: 'userId' });
+Tag.hasMany(UserWeakTag, { as: 'userWeakTags', foreignKey: 'tagId' });
+
+SubmissionIpRecord.belongsTo(Submission, { as: 'submission', foreignKey: 'submissionId' });
+SubmissionIpRecord.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+Submission.hasMany(SubmissionIpRecord, { as: 'ipRecords', foreignKey: 'submissionId' });
+User.hasMany(SubmissionIpRecord, { as: 'submissionIpRecords', foreignKey: 'userId' });
+
 module.exports = {
   User,
   Problem,
@@ -120,5 +194,16 @@ module.exports = {
   CodeFavorite,
   CodeNote,
   SubmissionStats,
+  PlagiarismReport,
+  PlagiarismMatch,
+  CheatingRecord,
+  JudgeNode,
+  ProblemSet,
+  ProblemSetProblem,
+  ProblemSetProgress,
+  ProblemSetRating,
+  ProblemHint,
+  UserWeakTag,
+  SubmissionIpRecord,
   sequelize,
 };

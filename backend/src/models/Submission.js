@@ -69,6 +69,42 @@ const Submission = sequelize.define('Submission', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  score: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  submissionType: {
+    type: DataTypes.ENUM('STANDARD', 'SPECIAL_JUDGE', 'INTERACTIVE', 'OUTPUT_ONLY'),
+    defaultValue: 'STANDARD',
+  },
+  judgeNodeId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'judge_nodes',
+      key: 'id',
+    },
+  },
+  priority: {
+    type: DataTypes.INTEGER,
+    defaultValue: 5,
+  },
+  rejudgeCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  lastRejudgedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  lastRejudgedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
 }, {
   timestamps: true,
   tableName: 'submissions',

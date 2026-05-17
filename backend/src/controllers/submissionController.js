@@ -1,7 +1,16 @@
 const { Op } = require('sequelize');
-const { Submission, Problem, User } = require('../models');
+const { Submission, Problem, User, SubmissionIpRecord, ProblemSetProblem, ProblemSetProgress } = require('../models');
 const { judgeQueue } = require('../config/redis');
 const { success, error, paginate } = require('../utils/response');
+const { updateProgress } = require('../services/problemSetService');
+
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || req.connection.remoteAddress || '';
+};
 
 const submitCode = async (req, res) => {
   try {
@@ -21,6 +30,17 @@ const submitCode = async (req, res) => {
       problemId: problem.id,
       status: 'PENDING',
       totalTestCases: problem.testCaseCount,
+      submissionType: problem.judgeType || 'STANDARD',
+    });
+    
+    const ipAddress = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+    
+    await SubmissionIpRecord.create({
+      submissionId: submission.id,
+      userId: user.id,
+      ipAddress,
+      userAgent,
     });
     
     await problem.increment('submissionsCount');
@@ -33,6 +53,12 @@ const submitCode = async (req, res) => {
       code,
       timeLimitMs: problem.timeLimitMs,
       memoryLimitMB: problem.memoryLimitMB,
+      judgeType: problem.judgeType,
+      specialJudgeCode: problem.specialJudgeCode,
+      specialJudgeLanguage: problem.specialJudgeLanguage,
+      specialJudgeTimeout: problem.specialJudgeTimeout,
+      partialScoring: problem.partialScoring,
+      subtasks: problem.subtasks,
     });
     
     return success(res, { submission: submission.toJSON() }, 201);

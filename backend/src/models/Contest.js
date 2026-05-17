@@ -58,6 +58,38 @@ const Contest = sequelize.define('Contest', {
       key: 'id',
     },
   },
+  autoPlagiarismCheck: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  plagiarismThreshold: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0.8,
+  },
+  plagiarismCheckDelay: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  allowAppeals: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  appealDeadline: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  antiCheatingEnabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  ipRestriction: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  allowedIpRanges: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+  },
 }, {
   timestamps: true,
   tableName: 'contests',

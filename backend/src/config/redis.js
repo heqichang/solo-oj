@@ -30,4 +30,34 @@ judgeQueue.on('failed', (job, err) => {
   console.error(`Job ${job.id} failed:`, err.message);
 });
 
-module.exports = { judgeQueue, redis };
+const plagiarismQueue = new Queue('plagiarism-queue', {
+  redis: redisOptions,
+  defaultJobOptions: {
+    attempts: 3,
+    removeOnComplete: true,
+    removeOnFail: 100,
+  },
+});
+
+plagiarismQueue.on('active', (job) => {
+  console.log(`Plagiarism job ${job.id} started processing`);
+});
+
+plagiarismQueue.on('completed', (job, result) => {
+  console.log(`Plagiarism job ${job.id} completed`);
+});
+
+plagiarismQueue.on('failed', (job, err) => {
+  console.error(`Plagiarism job ${job.id} failed:`, err.message);
+});
+
+const notificationQueue = new Queue('notification-queue', {
+  redis: redisOptions,
+  defaultJobOptions: {
+    attempts: 3,
+    removeOnComplete: true,
+    removeOnFail: 100,
+  },
+});
+
+module.exports = { judgeQueue, plagiarismQueue, notificationQueue, redis };

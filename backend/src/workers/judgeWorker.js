@@ -2,16 +2,20 @@ require('dotenv').config();
 
 const { judgeQueue } = require('../config/redis');
 const { judge } = require('../services/judgeService');
+const { runSpecialJudge, gradeSubmissionWithSubtasks, validateOutputOnlySubmission } = require('../services/specialJudgeService');
 const { connectDatabase } = require('../config/database');
 const { processContestSubmission } = require('../services/contestService');
 const { recordSubmissionInStats } = require('../services/rankingService');
+const { updateProgress } = require('../services/problemSetService');
 const {
   Submission,
   Problem,
   User,
   Contest,
   ContestProblem,
+  ProblemSetProblem,
 } = require('../models');
+const { PROBLEM_JUDGE_TYPE, JUDGE_STATUS } = require('../config/constants');
 
 const processJudgeJob = async (job) => {
   const {
@@ -23,27 +27,89 @@ const processJudgeJob = async (job) => {
     memoryLimitMB,
     contestId,
     contestProblemId,
+    judgeType,
+    specialJudgeCode,
+    specialJudgeLanguage,
+    specialJudgeTimeout,
+    partialScoring,
+    subtasks,
   } = job.data;
   
-  console.log(`Processing submission ${submissionId}...`);
+  console.log(`Processing submission ${submissionId} (type: ${judgeType || 'STANDARD'})...`);
   
   let submission = null;
+  let problem = null;
   
   try {
     submission = await Submission.findByPk(submissionId);
+    problem = await Problem.findByPk(problemId);
+    
     if (!submission) {
       throw new Error(`Submission ${submissionId} not found`);
     }
     
     await submission.update({ status: 'RUNNING' });
     
-    const result = await judge({
-      language,
-      code,
-      problemId,
-      timeLimitMs,
-      memoryLimitMB,
-    });
+    let result;
+    const actualJudgeType = judgeType || problem?.judgeType || PROBLEM_JUDGE_TYPE.STANDARD;
+    
+    if (actualJudgeType === PROBLEM_JUDGE_TYPE.OUTPUT_ONLY) {
+      result = await validateOutputOnlySubmission(submission, problem);
+    } else {
+      result = await judge({
+        language,
+        code,
+        problemId,
+        timeLimitMs,
+        memoryLimitMB,
+      });
+      
+      if (actualJudgeType === PROBLEM_JUDGE_TYPE.SPECIAL_JUDGE && result.status === JUDGE_STATUS.SUCCESS) {
+        const testCases = result.testResults || [];
+        let totalScore = 0;
+        
+        for (let i = 0; i < testCases.length; i++) {
+          const testResult = testCases[i];
+          if (testResult.status === JUDGE_STATUS.ACCEPTED && specialJudgeCode) {
+            const sjResult = await runSpecialJudge({
+              judgeLanguage: specialJudgeLanguage,
+              judgeCode: specialJudgeCode,
+              input: testResult.input,
+              expectedOutput: testResult.expectedOutput,
+              actualOutput: testResult.actualOutput,
+              timeLimitMs: specialJudgeTimeout || 10000,
+              memoryLimitMB,
+              problemId,
+              submissionCode: code,
+            });
+            
+            testResult.specialJudgeScore = sjResult.score;
+            testResult.specialJudgeMessage = sjResult.message;
+            totalScore += sjResult.score;
+            
+            if (sjResult.status !== JUDGE_STATUS.ACCEPTED) {
+              testResult.status = JUDGE_STATUS.WRONG_ANSWER;
+              testResult.passed = false;
+            }
+          }
+        }
+        
+        const passedCount = testCases.filter(t => t.passed).length;
+        result.status = passedCount === testCases.length ? JUDGE_STATUS.ACCEPTED : JUDGE_STATUS.WRONG_ANSWER;
+        result.testResults = testCases;
+        result.passedTestCases = passedCount;
+        result.score = totalScore;
+      }
+    }
+    
+    if (partialScoring && subtasks && subtasks.length > 0) {
+      const gradingResult = await gradeSubmissionWithSubtasks(
+        { ...result, testResults: result.testResults || [] },
+        { subtasks, partialScoring: true }
+      );
+      result.score = gradingResult.score;
+      result.subtaskScores = gradingResult.subtaskScores;
+    }
     
     const updateData = {
       status: result.status,
@@ -64,12 +130,19 @@ const processJudgeJob = async (job) => {
       updateData.errorMessage = result.error;
     }
     
+    if (result.score !== undefined) {
+      updateData.score = result.score;
+    }
+    
+    if (result.subtaskScores) {
+      updateData.subtaskScores = result.subtaskScores;
+    }
+    
     await submission.update(updateData);
     
     await recordSubmissionInStats(submission.userId, submission, false);
     
     if (result.status === 'ACCEPTED') {
-      const problem = await Problem.findByPk(problemId);
       if (problem) {
         await problem.increment('acceptedCount');
       }
@@ -92,6 +165,30 @@ const processJudgeJob = async (job) => {
           }
         }
       }
+      
+      const setProblems = await ProblemSetProblem.findAll({
+        where: { problemId },
+      });
+      
+      for (const sp of setProblems) {
+        try {
+          await updateProgress(sp.problemSetId, submission.userId, problemId, true);
+        } catch (e) {
+          console.error(`Error updating progress for set ${sp.problemSetId}:`, e.message);
+        }
+      }
+    } else {
+      const setProblems = await ProblemSetProblem.findAll({
+        where: { problemId },
+      });
+      
+      for (const sp of setProblems) {
+        try {
+          await updateProgress(sp.problemSetId, submission.userId, problemId, false);
+        } catch (e) {
+          console.error(`Error updating progress for set ${sp.problemSetId}:`, e.message);
+        }
+      }
     }
     
     if (contestId && contestProblemId) {
@@ -100,13 +197,15 @@ const processJudgeJob = async (job) => {
       
       if (contest && contestProblem) {
         const isAccepted = result.status === 'ACCEPTED';
-        let score = 0;
+        let score = result.score || 0;
         
-        if (contest.ruleType === 'ACM') {
-          score = isAccepted ? 1 : 0;
-        } else {
-          if (contestProblem.score > 0 && result.totalTestCases > 0) {
-            score = Math.round((result.passedTestCases / result.totalTestCases) * contestProblem.score);
+        if (score === 0 && isAccepted) {
+          if (contest.ruleType === 'ACM') {
+            score = 1;
+          } else {
+            if (contestProblem.score > 0 && result.totalTestCases > 0) {
+              score = Math.round((result.passedTestCases / result.totalTestCases) * contestProblem.score);
+            }
           }
         }
         

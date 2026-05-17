@@ -9,6 +9,10 @@ const rankingRoutes = require('./routes/rankingRoutes');
 const adminProblemRoutes = require('./routes/adminProblemRoutes');
 const discussionRoutes = require('./routes/discussionRoutes');
 const codeRoutes = require('./routes/codeRoutes');
+const plagiarismRoutes = require('./routes/plagiarismRoutes');
+const problemSetRoutes = require('./routes/problemSetRoutes');
+const hintRoutes = require('./routes/hintRoutes');
+const judgeAdminRoutes = require('./routes/judgeAdminRoutes');
 
 const app = express();
 
@@ -32,6 +36,10 @@ app.use('/api/rankings', rankingRoutes);
 app.use('/api/admin/problems', adminProblemRoutes);
 app.use('/api/discussions', discussionRoutes);
 app.use('/api/code', codeRoutes);
+app.use('/api/plagiarism', plagiarismRoutes);
+app.use('/api/problem-sets', problemSetRoutes);
+app.use('/api/hints', hintRoutes);
+app.use('/api/judge-admin', judgeAdminRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

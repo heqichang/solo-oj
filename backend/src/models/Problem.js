@@ -106,6 +106,39 @@ const Problem = sequelize.define('Problem', {
     type: DataTypes.JSONB,
     defaultValue: null,
   },
+  judgeType: {
+    type: DataTypes.ENUM('STANDARD', 'SPECIAL_JUDGE', 'INTERACTIVE', 'OUTPUT_ONLY'),
+    allowNull: false,
+    defaultValue: 'STANDARD',
+  },
+  specialJudgeCode: {
+    type: DataTypes.TEXT,
+    defaultValue: null,
+  },
+  specialJudgeLanguage: {
+    type: DataTypes.STRING(50),
+    defaultValue: null,
+  },
+  specialJudgeTimeout: {
+    type: DataTypes.INTEGER,
+    defaultValue: 10000,
+  },
+  subtasks: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+  },
+  partialScoring: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  interactionCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  outputOnlyFileSizeLimit: {
+    type: DataTypes.INTEGER,
+    defaultValue: 10000000,
+  },
 }, {
   timestamps: true,
   tableName: 'problems',
