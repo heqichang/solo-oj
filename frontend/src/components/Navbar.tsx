@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -25,6 +26,12 @@ const Navbar: React.FC = () => {
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
               >
                 题目
+              </Link>
+              <Link
+                to="/problem-sets"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              >
+                题单
               </Link>
               <Link
                 to="/contests"
@@ -53,6 +60,12 @@ const Navbar: React.FC = () => {
                     提交
                   </Link>
                   <Link
+                    to="/learning"
+                    className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                  >
+                    学习路径
+                  </Link>
+                  <Link
                     to="/code/favorites"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
                   >
@@ -61,12 +74,42 @@ const Navbar: React.FC = () => {
                 </>
               )}
               {user?.isAdmin && (
-                <Link
-                  to="/admin/problems"
-                  className="text-purple-600 hover:text-purple-800 px-3 py-2 text-sm font-medium"
-                >
-                  管理
-                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                    className="text-purple-600 hover:text-purple-800 px-3 py-2 text-sm font-medium flex items-center gap-1"
+                  >
+                    管理
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {adminMenuOpen && (
+                    <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <Link
+                        to="/admin/problems"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setAdminMenuOpen(false)}
+                      >
+                        题目管理
+                      </Link>
+                      <Link
+                        to="/admin/plagiarism"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setAdminMenuOpen(false)}
+                      >
+                        查重管理
+                      </Link>
+                      <Link
+                        to="/admin/judge"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setAdminMenuOpen(false)}
+                      >
+                        评测机管理
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

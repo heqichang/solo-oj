@@ -16,6 +16,16 @@ import type {
   CodeFavorite,
   CodeNote,
   ProblemStatus,
+  PlagiarismReport,
+  PlagiarismMatch,
+  CheatingRecord,
+  JudgeNode,
+  JudgeQueueStatus,
+  ProblemSet,
+  ProblemSetProgress,
+  ProblemHint,
+  UserWeakTag,
+  LearningPathRecommendation,
 } from '../types';
 
 const api: AxiosInstance = axios.create({
@@ -504,6 +514,294 @@ export const codeApi = {
     sortBy?: 'runtime' | 'memory';
   }) => {
     const res = await api.get<PaginatedResponse<Submission>>(`/code/accepted/${problemId}`, { params });
+    return res.data;
+  },
+};
+
+export const plagiarismApi = {
+  createReport: async (data: {
+    problemId?: string;
+    contestId?: string;
+    type: 'PROBLEM' | 'CONTEST' | 'MANUAL';
+    algorithm?: 'TOKEN_SIMILARITY' | 'AST_SIMILARITY' | 'MOSS' | 'SIMIAN';
+    threshold?: number;
+  }) => {
+    const res = await api.post<ApiResponse<PlagiarismReport>>('/plagiarism/reports', data);
+    return res.data;
+  },
+
+  listReports: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    type?: 'PROBLEM' | 'CONTEST' | 'MANUAL';
+    problemId?: string;
+    contestId?: string;
+  }) => {
+    const res = await api.get<PaginatedResponse<PlagiarismReport>>('/plagiarism/reports', { params });
+    return res.data;
+  },
+
+  getReport: async (id: string) => {
+    const res = await api.get<ApiResponse<PlagiarismReport>>(`/plagiarism/reports/${id}`);
+    return res.data;
+  },
+
+  listMatches: async (params?: {
+    reportId?: string;
+    page?: number;
+    limit?: number;
+    status?: 'PENDING_REVIEW' | 'REVIEWED' | 'CONFIRMED_CHEATING' | 'FALSE_POSITIVE';
+    minSimilarity?: number;
+  }) => {
+    const res = await api.get<PaginatedResponse<PlagiarismMatch>>('/plagiarism/matches', { params });
+    return res.data;
+  },
+
+  getMatch: async (id: string) => {
+    const res = await api.get<ApiResponse<PlagiarismMatch>>(`/plagiarism/matches/${id}`);
+    return res.data;
+  },
+
+  reviewMatch: async (id: string, data: {
+    status: 'PENDING_REVIEW' | 'REVIEWED' | 'CONFIRMED_CHEATING' | 'FALSE_POSITIVE';
+    reviewComment?: string;
+  }) => {
+    const res = await api.put<ApiResponse<PlagiarismMatch>>(`/plagiarism/matches/${id}/review`, data);
+    return res.data;
+  },
+
+  createCheatingRecord: async (data: {
+    userId: string;
+    contestId?: string;
+    submissionId?: string;
+    plagiarismMatchId?: string;
+    type: 'PLAGIARISM' | 'COLLUSION' | 'MULTIPLE_ACCOUNTS' | 'IP_SHARING' | 'OTHER';
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    punishment: 'WARNING' | 'SCORE_CANCELLATION' | 'CONTEST_DISQUALIFICATION' | 'TEMPORARY_BAN' | 'PERMANENT_BAN';
+    description?: string;
+    evidence?: Record<string, any>;
+  }) => {
+    const res = await api.post<ApiResponse<CheatingRecord>>('/plagiarism/cheating', data);
+    return res.data;
+  },
+
+  listCheatingRecords: async (params?: {
+    userId?: string;
+    contestId?: string;
+    type?: string;
+    severity?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const res = await api.get<PaginatedResponse<CheatingRecord>>('/plagiarism/cheating', { params });
+    return res.data;
+  },
+
+  checkSuspiciousActivity: async (userId: string) => {
+    const res = await api.get<ApiResponse<any[]>>(`/plagiarism/suspicious/${userId}`);
+    return res.data;
+  },
+
+  appealCheatingRecord: async (id: string, data: { appealComment: string }) => {
+    const res = await api.post<ApiResponse<CheatingRecord>>(`/plagiarism/cheating/${id}/appeal`, data);
+    return res.data;
+  },
+
+  reviewAppeal: async (id: string, data: { appealDecision: 'UPHELD' | 'OVERTURNED' | 'REDUCED' }) => {
+    const res = await api.put<ApiResponse<CheatingRecord>>(`/plagiarism/cheating/${id}/appeal`, data);
+    return res.data;
+  },
+};
+
+export const problemSetApi = {
+  create: async (data: Partial<ProblemSet>) => {
+    const res = await api.post<ApiResponse<ProblemSet>>('/problem-sets', data);
+    return res.data;
+  },
+
+  list: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'SPECIAL_TOPIC' | 'INTERVIEW_PREP' | 'CONTEST';
+    difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | 'MIXED';
+    search?: string;
+    isFeatured?: boolean;
+    createdBy?: string;
+  }) => {
+    const res = await api.get<PaginatedResponse<ProblemSet>>('/problem-sets', { params });
+    return res.data;
+  },
+
+  getBySlug: async (slug: string) => {
+    const res = await api.get<ApiResponse<ProblemSet>>(`/problem-sets/${slug}`);
+    return res.data;
+  },
+
+  update: async (id: string, data: Partial<ProblemSet>) => {
+    const res = await api.put<ApiResponse<ProblemSet>>(`/problem-sets/${id}`, data);
+    return res.data;
+  },
+
+  delete: async (id: string) => {
+    const res = await api.delete<ApiResponse<null>>(`/problem-sets/${id}`);
+    return res.data;
+  },
+
+  addProblem: async (id: string, data: {
+    problemId: string;
+    section?: string;
+    points?: number;
+    isRequired?: boolean;
+    notes?: string;
+  }) => {
+    const res = await api.post<ApiResponse<any>>(`/problem-sets/${id}/problems`, data);
+    return res.data;
+  },
+
+  removeProblem: async (id: string, problemId: string) => {
+    const res = await api.delete<ApiResponse<null>>(`/problem-sets/${id}/problems/${problemId}`);
+    return res.data;
+  },
+
+  updateProblem: async (id: string, problemId: string, data: any) => {
+    const res = await api.put<ApiResponse<any>>(`/problem-sets/${id}/problems/${problemId}`, data);
+    return res.data;
+  },
+
+  enroll: async (id: string) => {
+    const res = await api.post<ApiResponse<ProblemSetProgress>>(`/problem-sets/${id}/enroll`);
+    return res.data;
+  },
+
+  rate: async (id: string, data: { rating: number; comment?: string }) => {
+    const res = await api.post<ApiResponse<any>>(`/problem-sets/${id}/rate`, data);
+    return res.data;
+  },
+
+  getRecommended: async (limit?: number) => {
+    const res = await api.get<ApiResponse<ProblemSet[]>>('/problem-sets/recommended', { params: { limit } });
+    return res.data;
+  },
+
+  getMyProgress: async (params?: {
+    status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+    limit?: number;
+  }) => {
+    const res = await api.get<ApiResponse<ProblemSetProgress[]>>('/problem-sets/me/progress', { params });
+    return res.data;
+  },
+};
+
+export const hintApi = {
+  getHints: async (problemId: string) => {
+    const res = await api.get<ApiResponse<ProblemHint[]>>(`/hints/problems/${problemId}/hints`);
+    return res.data;
+  },
+
+  createHint: async (problemId: string, data: Partial<ProblemHint>) => {
+    const res = await api.post<ApiResponse<ProblemHint>>(`/hints/problems/${problemId}/hints`, data);
+    return res.data;
+  },
+
+  updateHint: async (id: string, data: Partial<ProblemHint>) => {
+    const res = await api.put<ApiResponse<ProblemHint>>(`/hints/hints/${id}`, data);
+    return res.data;
+  },
+
+  deleteHint: async (id: string) => {
+    const res = await api.delete<ApiResponse<null>>(`/hints/hints/${id}`);
+    return res.data;
+  },
+
+  unlockHint: async (id: string) => {
+    const res = await api.post<ApiResponse<{ unlocked: boolean; hint?: ProblemHint; requiredAttempts?: number; currentAttempts?: number }>>(`/hints/hints/${id}/unlock`);
+    return res.data;
+  },
+
+  getMyWeakTags: async (limit?: number) => {
+    const res = await api.get<ApiResponse<UserWeakTag[]>>('/hints/me/weak-tags', { params: { limit } });
+    return res.data;
+  },
+
+  analyzeWeakTags: async () => {
+    const res = await api.post<ApiResponse<UserWeakTag[]>>('/hints/me/analyze-weak-tags');
+    return res.data;
+  },
+
+  getLearningPath: async () => {
+    const res = await api.get<ApiResponse<LearningPathRecommendation>>('/hints/me/learning-path');
+    return res.data;
+  },
+
+  getRelatedProblems: async (problemId: string, limit?: number) => {
+    const res = await api.get<ApiResponse<Problem[]>>(`/hints/problems/${problemId}/related`, { params: { limit } });
+    return res.data;
+  },
+};
+
+export const judgeAdminApi = {
+  rejudgeSubmission: async (id: string) => {
+    const res = await api.post<ApiResponse<any>>(`/judge-admin/submissions/${id}/rejudge`);
+    return res.data;
+  },
+
+  rejudgeProblem: async (problemId: string) => {
+    const res = await api.post<ApiResponse<any>>(`/judge-admin/problems/${problemId}/rejudge`);
+    return res.data;
+  },
+
+  rejudgeContest: async (contestId: string) => {
+    const res = await api.post<ApiResponse<any>>(`/judge-admin/contests/${contestId}/rejudge`);
+    return res.data;
+  },
+
+  rejudgeSelected: async (submissionIds: string[]) => {
+    const res = await api.post<ApiResponse<any>>('/judge-admin/submissions/rejudge', { submissionIds });
+    return res.data;
+  },
+
+  registerJudgeNode: async (data: Partial<JudgeNode>) => {
+    const res = await api.post<ApiResponse<JudgeNode>>('/judge-admin/judge-nodes', data);
+    return res.data;
+  },
+
+  listJudgeNodes: async (params?: {
+    status?: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'MAINTENANCE' | 'ERROR';
+    type?: 'STANDARD' | 'SPECIAL' | 'INTERACTIVE' | 'UNIVERSAL';
+    isEnabled?: boolean;
+  }) => {
+    const res = await api.get<ApiResponse<JudgeNode[]>>('/judge-admin/judge-nodes', { params });
+    return res.data;
+  },
+
+  updateJudgeNode: async (id: string, data: Partial<JudgeNode>) => {
+    const res = await api.put<ApiResponse<JudgeNode>>(`/judge-admin/judge-nodes/${id}`, data);
+    return res.data;
+  },
+
+  deleteJudgeNode: async (id: string) => {
+    const res = await api.delete<ApiResponse<null>>(`/judge-admin/judge-nodes/${id}`);
+    return res.data;
+  },
+
+  getQueueStatus: async () => {
+    const res = await api.get<ApiResponse<JudgeQueueStatus>>('/judge-admin/queue/status');
+    return res.data;
+  },
+
+  pauseQueue: async () => {
+    const res = await api.post<ApiResponse<{ paused: boolean }>>('/judge-admin/queue/pause');
+    return res.data;
+  },
+
+  resumeQueue: async () => {
+    const res = await api.post<ApiResponse<{ paused: boolean }>>('/judge-admin/queue/resume');
+    return res.data;
+  },
+
+  emptyQueue: async () => {
+    const res = await api.post<ApiResponse<{ emptied: boolean }>>('/judge-admin/queue/empty');
     return res.data;
   },
 };

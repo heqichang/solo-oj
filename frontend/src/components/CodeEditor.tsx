@@ -1,6 +1,5 @@
 import React from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
 import { MONACO_LANGUAGE_MAP } from '../utils/judgeStatus';
 
 interface CodeEditorProps {

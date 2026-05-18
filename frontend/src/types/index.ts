@@ -282,6 +282,286 @@ export interface CodeNote {
   updatedAt: string;
 }
 
+export type PlagiarismReportType = 'PROBLEM' | 'CONTEST' | 'MANUAL';
+export type PlagiarismReportStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type PlagiarismAlgorithm = 'TOKEN_SIMILARITY' | 'AST_SIMILARITY' | 'MOSS' | 'SIMIAN';
+export type PlagiarismMatchStatus = 'PENDING_REVIEW' | 'REVIEWED' | 'CONFIRMED_CHEATING' | 'FALSE_POSITIVE';
+export type CheatingType = 'PLAGIARISM' | 'COLLUSION' | 'MULTIPLE_ACCOUNTS' | 'IP_SHARING' | 'OTHER';
+export type CheatingSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type PunishmentType = 'WARNING' | 'SCORE_CANCELLATION' | 'CONTEST_DISQUALIFICATION' | 'TEMPORARY_BAN' | 'PERMANENT_BAN';
+export type AppealDecision = 'UPHELD' | 'OVERTURNED' | 'REDUCED';
+
+export interface PlagiarismReport {
+  id: string;
+  problemId?: string;
+  contestId?: string;
+  type: PlagiarismReportType;
+  status: PlagiarismReportStatus;
+  totalSubmissions: number;
+  suspiciousPairs: number;
+  algorithm: PlagiarismAlgorithm;
+  threshold: number;
+  startedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
+  generatedBy?: string;
+  generator?: User;
+  problem?: Problem;
+  contest?: Contest;
+  matches?: PlagiarismMatch[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlagiarismMatch {
+  id: string;
+  reportId: string;
+  submissionId1: string;
+  submissionId2: string;
+  userId1: string;
+  userId2: string;
+  similarityScore: number;
+  tokenSimilarity: number;
+  structureSimilarity: number;
+  variableSimilarity: number;
+  matchedLines1: number[];
+  matchedLines2: number[];
+  highlightedCode1?: string;
+  highlightedCode2?: string;
+  status: PlagiarismMatchStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewComment?: string;
+  report?: PlagiarismReport;
+  user1?: User;
+  user2?: User;
+  submission1?: Submission;
+  submission2?: Submission;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheatingRecord {
+  id: string;
+  userId: string;
+  contestId?: string;
+  submissionId?: string;
+  plagiarismMatchId?: string;
+  type: CheatingType;
+  severity: CheatingSeverity;
+  punishment: PunishmentType;
+  description?: string;
+  evidence: Record<string, any>;
+  punishmentStartDate?: string;
+  punishmentEndDate?: string;
+  isActive: boolean;
+  appealed: boolean;
+  appealComment?: string;
+  appealReviewed: boolean;
+  appealReviewedBy?: string;
+  appealDecision?: AppealDecision;
+  createdBy: string;
+  user?: User;
+  creator?: User;
+  contest?: Contest;
+  submission?: Submission;
+  plagiarismMatch?: PlagiarismMatch;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type JudgeNodeStatus = 'ONLINE' | 'OFFLINE' | 'BUSY' | 'MAINTENANCE' | 'ERROR';
+export type JudgeNodeType = 'STANDARD' | 'SPECIAL' | 'INTERACTIVE' | 'UNIVERSAL';
+export type ProblemJudgeType = 'STANDARD' | 'SPECIAL_JUDGE' | 'INTERACTIVE' | 'OUTPUT_ONLY';
+
+export interface JudgeNode {
+  id: string;
+  name: string;
+  endpoint: string;
+  token?: string;
+  status: JudgeNodeStatus;
+  type: JudgeNodeType;
+  supportedLanguages: string[];
+  maxConcurrentJobs: number;
+  currentJobs: number;
+  totalJobsProcessed: number;
+  totalErrors: number;
+  cpuUsage: number;
+  memoryUsage: number;
+  memoryTotal: number;
+  diskUsage: number;
+  lastHeartbeat?: string;
+  lastError?: string;
+  lastErrorAt?: string;
+  version?: string;
+  region?: string;
+  priority: number;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JudgeQueueStatus {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+}
+
+export type ProblemSetCategory = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'SPECIAL_TOPIC' | 'INTERVIEW_PREP' | 'CONTEST';
+export type ProblemSetDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'MIXED';
+export type ProblemSetStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface ProblemSet {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  category: ProblemSetCategory;
+  difficulty: ProblemSetDifficulty;
+  tags: string[];
+  coverImage?: string;
+  isPublic: boolean;
+  isFeatured: boolean;
+  problemCount: number;
+  totalEnrolled: number;
+  totalCompleted: number;
+  averageRating: number;
+  ratingCount: number;
+  estimatedTime: number;
+  prerequisites: any[];
+  learningObjectives: any[];
+  createdBy: string;
+  creator?: User;
+  problems?: ProblemSetProblem[];
+  progress?: ProblemSetProgress;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemSetProblem {
+  id: string;
+  problemSetId: string;
+  problemId: string;
+  position: number;
+  section?: string;
+  points: number;
+  isRequired: boolean;
+  notes?: string;
+  problem?: Problem;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemSetProgress {
+  id: string;
+  problemSetId: string;
+  userId: string;
+  status: ProblemSetStatus;
+  totalProblems: number;
+  solvedProblems: number;
+  attemptedProblems: number;
+  progressPercentage: number;
+  totalPoints: number;
+  earnedPoints: number;
+  problemStatuses: Record<string, string>;
+  lastProblemId?: string;
+  startedAt?: string;
+  completedAt?: string;
+  lastActivityAt?: string;
+  totalTimeSpent: number;
+  problemSet?: ProblemSet;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemSetRating {
+  id: string;
+  problemSetId: string;
+  userId: string;
+  rating: number;
+  comment?: string;
+  user?: User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type HintType = 'DIRECTIONAL' | 'APPROACH' | 'CODE_SNIPPET' | 'FULL_SOLUTION';
+export type WeakTagLevel = 'STRONG' | 'MODERATE' | 'WEAK' | 'VERY_WEAK';
+
+export interface ProblemHint {
+  id: string;
+  problemId: string;
+  level: number;
+  type: HintType;
+  title?: string;
+  content: string;
+  language?: string;
+  isFree: boolean;
+  requiredAttempts: number;
+  pointsCost: number;
+  createdBy?: string;
+  canAccess?: boolean;
+  locked?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserWeakTag {
+  id: string;
+  userId: string;
+  tagId: string;
+  tagName: string;
+  totalAttempts: number;
+  correctAttempts: number;
+  accuracy: number;
+  averageTimeSpent: number;
+  weaknessScore: number;
+  level: WeakTagLevel;
+  lastPracticed?: string;
+  recommendations: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    difficulty: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LearningPathRecommendation {
+  weakAreas: UserWeakTag[];
+  strongAreas: UserWeakTag[];
+  recommendedLevel: string;
+  recommendedSets: ProblemSet[];
+  nextTopics: Array<{
+    tagName: string;
+    recommendations: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      difficulty: string;
+    }>;
+  }>;
+}
+
+export interface Subtask {
+  id: string;
+  name: string;
+  score: number;
+  testCases: number[];
+  description?: string;
+}
+
+export interface SubtaskScore {
+  subtaskId: string;
+  subtaskName: string;
+  score: number;
+  maxScore: number;
+  passed: number;
+  total: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
